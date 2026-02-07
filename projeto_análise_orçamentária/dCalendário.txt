@@ -1,0 +1,21 @@
+let
+    Fonte = Orcamento2018[DATA] & Realizado2018[DATA],
+    DataMin = Date.StartOfYear(List.Min( Fonte )),
+    DataMax = Date.EndOfYear(List.Min( Fonte )),
+    QtdDias = Duration.Days(DataMax - DataMin) + 1,
+    ListDates = List.Dates(DataMin, QtdDias, #duration (1, 0, 0, 0)),
+    ConvertidoTabela = Table.FromList(ListDates, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    NomeDia = Table.AddColumn(ConvertidoTabela, "NomeDia", each Text.BeforeDelimiter(Date.DayOfWeekName([Column1]), "-"), type text),
+    NomeMês = Table.AddColumn(NomeDia, "NomeMês", each Date.MonthName([Column1]), type text),
+    MêsAbreviado = Table.AddColumn(NomeMês, "MêsAbrev", each Text.Start([NomeMês], 3), type text),
+    SemanaMês = Table.AddColumn(MêsAbreviado, "SemanaMes", each Text.PadStart( Text.From(Date.WeekOfMonth([Column1])), 2, "0") & "ª - Sem", type text),
+    #"Semana do Ano Inserida" = Table.AddColumn(SemanaMês, "SemanaAno", each Text.PadStart( Text.From(Date.WeekOfYear([Column1])), 2, "0") & "ª - Sem", type text),
+    NumMês = Table.AddColumn(#"Semana do Ano Inserida", "NumMês", each Date.Month([Column1]), Int64.Type),
+    TrimestreInserido = Table.AddColumn(NumMês, "Trimestre", each Text.PadStart(Text.From(Date.QuarterOfYear([Column1])), 2, "0") & "º - Tri", type text),
+    Ano = Table.AddColumn(TrimestreInserido, "Ano", each Date.Year([Column1]), Int64.Type),
+    MêsAno = Table.AddColumn(Ano, "MêsAno", each Text.Combine({[NomeMês], Text.From([Ano], "pt-BR")}, " - "), type text),
+    #"Colunas Renomeadas" = Table.RenameColumns(MêsAno,{{"Column1", "Data"}}),
+    #"Tipo Alterado" = Table.TransformColumnTypes(#"Colunas Renomeadas",{{"Data", type date}}),
+    #"Colocar Cada Palavra Em Maiúscula" = Table.TransformColumns(#"Tipo Alterado",{{"MêsAno", Text.Proper, type text}, {"MêsAbrev", Text.Proper, type text}, {"NomeMês", Text.Proper, type text}, {"NomeDia", Text.Proper, type text}})
+in
+    #"Colocar Cada Palavra Em Maiúscula"
